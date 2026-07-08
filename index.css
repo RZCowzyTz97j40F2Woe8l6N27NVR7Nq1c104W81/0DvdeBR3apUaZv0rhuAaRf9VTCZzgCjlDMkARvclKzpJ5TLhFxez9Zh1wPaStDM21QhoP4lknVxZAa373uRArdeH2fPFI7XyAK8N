@@ -11,6 +11,7 @@ body {
   color: #ffffff;
   font-family: monospace;
   --ink: #ffffff;
+  --tabh: 62px; --panelw: 160px;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -59,8 +60,38 @@ body {
 
 /*//////////////////////////////////////////////////////////////////////*/
 
+.tabs {
+  position: fixed;
+  left: 0; top: 0; right: var(--panelw);
+  height: var(--tabh);
+  display: flex;
+  align-items: center;
+  gap: 8px; padding: 0 8px;
+  z-index: 1;
+}
+
+.tab {
+  isolation: isolate;
+  line-height: 0;
+  cursor: pointer;
+  background: #000000;
+}
+
+.tab img {
+  display: block;
+  width: 52px; height: 46px;
+  image-rendering: pixelated;
+}
+
+.tab:hover, .tab.on {background: #ffff00}
+.tab:hover img, .tab.on img {mix-blend-mode: multiply}
+
+/*//////////////////////////////////////////////////////////////////////*/
+
 .list {
-  position: fixed; inset: 0;
+  position: fixed;
+  left: 0; top: var(--tabh);
+  right: var(--panelw); bottom: 0;
   overflow-x: hidden; overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
@@ -74,21 +105,18 @@ body {
 
 .row {
   position: absolute;
-  left: 0; width: 100%;
+  left: 0;
   height: 28px;
   cursor: pointer;
 }
 
 .row.on {--ink: #ffff00}
 
-.num, .rid {
+.num {
   position: absolute;
-  left: 59px;
+  left: 59px; top: 7px;
   transform: translateX(-100%);
 }
-
-.num {top: 7px}
-.rid {top: 21px}
 
 .name {
   position: absolute;
@@ -98,7 +126,6 @@ body {
 
 .heart {
   position: absolute;
-  left: 4px;
   width: 16px; height: 16px;
   image-rendering: pixelated;
 }

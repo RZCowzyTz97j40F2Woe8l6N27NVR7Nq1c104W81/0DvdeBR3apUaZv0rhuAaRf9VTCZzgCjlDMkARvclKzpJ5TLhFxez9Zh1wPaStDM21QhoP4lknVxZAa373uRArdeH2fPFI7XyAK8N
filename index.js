@@ -1,10 +1,13 @@
 import {settext} from "./font.js";
 
 const ROWH = 28;
+const NUMW = 64, COLGAP = 24;
+const CHAPTERS = [1, 2, 3, 4, 5];
 const MINPITCH = 0.2, MAXPITCH = 3;
 const CLICKSLOP = 4;
 const NOTCH = 100, ROWSPERNOTCH = 1;
 
+const tabsbox = document.querySelector(".tabs");
 const list = document.querySelector(".list");
 const rowsbox = document.querySelector(".rows");
 const panel = document.querySelector(".panel");
@@ -17,17 +20,17 @@ const audio = new Audio();
 audio.preload = "none";
 if ("preservesPitch" in audio) audio.preservesPitch = false;
 
-let tracks = [];
+let tracks = [], view = [], chapter = CHAPTERS[0];
 let current = 0, loaded = -1;
 let auto = 0, pitch = 1;
 let raf = 0, drag = null, dragmoved = false, seeking = false, wheelacc = 0;
+let colw = 0, percol = 1;
 
-const rows = [];
-const plines = [];
+const rows = [], names = [], tabs = [], plines = [];
 let heart;
 
 const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
-const last = () => tracks.length - 1;
+const last = () => view.length - 1;
 const snap = v => Math.round(v / ROWH) * ROWH;
 
 function fmt(s) {
@@ -49,11 +52,11 @@ const CONTROLS = [
 ];
 
 function play() {
-  const t = tracks[current];
+  const t = view[current];
   if (!t) return;
-  if (loaded !== current) {
+  if (loaded !== t.n) {
     audio.src = "assets/audio/ch" + t.ch + "/" + encodeURIComponent(t.f);
-    loaded = current;
+    loaded = t.n;
   }
   else {
     try {audio.currentTime = 0} catch {}
@@ -65,7 +68,7 @@ function play() {
 
 function toggleplay() {
   if (!audio.paused) {audio.pause(); return}
-  if (loaded === current && audio.currentTime > 0 && !audio.ended) {audio.play().catch(() => {}); return}
+  if (loaded === view[current]?.n && audio.currentTime > 0 && !audio.ended) {audio.play().catch(() => {}); return}
   play();
 }
 
@@ -82,12 +85,17 @@ function setpitch(p) {
   refreshpanel();
 }
 
+function placeheart() {
+  heart.style.left = (Math.floor(current / percol) * colw + 4) + "px";
+  heart.style.top = ((current % percol) * ROWH + 8) + "px";
+}
+
 function select(i) {
   const next = clamp(i, 0, last());
   rows[current]?.classList.remove("on");
   current = next;
   rows[current].classList.add("on");
-  heart.style.top = (current * ROWH + 8) + "px";
+  placeheart();
 }
 
 function pick(i) {
@@ -100,40 +108,79 @@ function scrollto(top) {
 }
 
 function revealcurrent() {
-  const top = current * ROWH;
+  const top = (current % percol) * ROWH;
   if (top >= list.scrollTop && top + ROWH <= list.scrollTop + list.clientHeight) return;
   scrollto(snap(top - (list.clientHeight - ROWH) / 2));
 }
 
 /*//////////////////////////////////////////////////////////////////////*/
 
+function buildtabs() {
+  for (const ch of CHAPTERS) {
+    const tab = document.createElement("div");
+    tab.className = "tab";
+    const icon = document.createElement("img");
+    icon.src = "assets/images/chapters/ch" + ch + ".png";
+    tab.appendChild(icon);
+    tab.onclick = () => setchapter(ch);
+    tabsbox.appendChild(tab);
+    tabs.push(tab);
+  }
+}
+
 function buildlist() {
+  rows.length = 0;
+  names.length = 0;
+  rowsbox.textContent = "";
   const frag = document.createDocumentFragment();
-  tracks.forEach((t, i) => {
+  view.forEach((t, i) => {
     const row = document.createElement("div");
     row.className = "row";
     row.dataset.i = i;
-    row.style.top = (i * ROWH) + "px";
     const num = document.createElement("div");
     num.className = "num";
-    const rid = document.createElement("div");
-    rid.className = "rid";
     const name = document.createElement("div");
     name.className = "name";
     settext(num, "#" + t.n, "fnt_main");
-    settext(rid, "ch" + t.ch, "fnt_small");
     settext(name, t.t, "fnt_mainbig");
-    row.append(num, rid, name);
+    row.append(num, name);
     frag.appendChild(row);
     rows.push(row);
+    names.push(name);
   });
   heart = document.createElement("img");
   heart.className = "heart";
   heart.src = "assets/images/heart.png";
-  heart.alt = "";
   frag.appendChild(heart);
-  rowsbox.style.height = (tracks.length * ROWH + 4) + "px";
   rowsbox.appendChild(frag);
+}
+
+function layout() {
+  if (!rows.length) return;
+  const avail = list.clientWidth;
+  let widest = 0;
+  for (const n of names) if (n.offsetWidth > widest) widest = n.offsetWidth;
+  colw = Math.min(NUMW + widest + COLGAP, avail);
+  const cols = clamp(Math.floor(avail / colw), 1, rows.length);
+  percol = Math.ceil(rows.length / cols);
+  rows.forEach((row, i) => {
+    row.style.width = colw + "px";
+    row.style.left = (Math.floor(i / percol) * colw) + "px";
+    row.style.top = ((i % percol) * ROWH) + "px";
+  });
+  rowsbox.style.height = (percol * ROWH + 4) + "px";
+  placeheart();
+}
+
+function setchapter(ch) {
+  chapter = ch;
+  view = tracks.filter(t => t.ch === ch);
+  tabs.forEach((tab, i) => tab.classList.toggle("on", CHAPTERS[i] === ch));
+  buildlist();
+  layout();
+  scrollto(0);
+  const i = view.findIndex(t => t.n === loaded);
+  select(i < 0 ? 0 : i);
 }
 
 function buildpanel() {
@@ -184,6 +231,8 @@ function onwheel(e) {
 function wire() {
   list.addEventListener("wheel", onwheel, {passive: false});
   panel.addEventListener("wheel", onwheel, {passive: false});
+  tabsbox.addEventListener("wheel", onwheel, {passive: false});
+  window.addEventListener("resize", layout);
 
   list.addEventListener("pointerdown", e => {
     dragmoved = false;
@@ -236,9 +285,11 @@ function wire() {
   audio.addEventListener("loadedmetadata", drawseek);
   audio.addEventListener("seeked", drawseek);
   audio.addEventListener("ended", () => {
-    if (!auto || current >= last()) {refreshpanel(); return}
-    select(current + 1);
-    revealcurrent();
+    if (!auto) {refreshpanel(); return}
+    if (current < last()) {select(current + 1); revealcurrent(); play(); return}
+    const nextch = CHAPTERS[CHAPTERS.indexOf(chapter) + 1];
+    if (nextch === undefined) {refreshpanel(); return}
+    setchapter(nextch);
     play();
   });
 }
@@ -246,9 +297,9 @@ function wire() {
 /*//////////////////////////////////////////////////////////////////////*/
 
 tracks = await (await fetch("assets/tracks.json")).json();
-buildlist();
+buildtabs();
 buildpanel();
 wire();
-select(0);
+setchapter(CHAPTERS[0]);
 refreshpanel();
 drawseek();

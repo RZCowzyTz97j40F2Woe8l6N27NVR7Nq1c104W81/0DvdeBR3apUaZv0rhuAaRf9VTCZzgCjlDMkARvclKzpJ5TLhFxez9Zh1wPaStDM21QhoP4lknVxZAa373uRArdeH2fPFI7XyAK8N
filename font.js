@@ -1,14 +1,3 @@
-/*//////////////////////////////////////////////////////////////////////*/
-// font.js - deltarune bitmap font renderer, standalone copy for /music/.
-// each glyph is a span whose ::before masks the font atlas; per-font metrics
-// live in one injected stylesheet (class .g-<font>-<codepoint>) rather than
-// an inline style per glyph.
-// unlike the editor's copy this one carries no real characters and no .word
-// boxes: every line here is nowrap and the page is user-select:none, so the
-// transparent text runs and the zero-width wrap opportunities between words
-// would only be thousands of extra nodes for the compositor to walk
-/*//////////////////////////////////////////////////////////////////////*/
-
 import {fonts} from "./assets/fonts/fonts.js";
 
 const DEFAULT = "fnt_main";
