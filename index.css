@@ -11,9 +11,17 @@ body {
   color: #ffffff;
   font-family: monospace;
   --ink: #ffffff;
-  --tabh: 62px; --panelw: 160px;
+  --topgap: 56px;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.page {
+  position: relative;
+  display: grid;
+  height: 100%;
+  overflow: hidden;
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 /*//////////////////////////////////////////////////////////////////////*/
@@ -61,13 +69,10 @@ body {
 /*//////////////////////////////////////////////////////////////////////*/
 
 .tabs {
-  position: fixed;
-  left: 0; top: 0; right: var(--panelw);
-  height: var(--tabh);
   display: flex;
   align-items: center;
-  gap: 8px; padding: 0 8px;
-  z-index: 1;
+  gap: 8px;
+  padding: 8px; padding-top: calc(8px + var(--topgap));
 }
 
 .tab {
@@ -89,9 +94,7 @@ body {
 /*//////////////////////////////////////////////////////////////////////*/
 
 .list {
-  position: fixed;
-  left: 0; top: var(--tabh);
-  right: var(--panelw); bottom: 0;
+  min-width: 0;
   overflow-x: hidden; overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
@@ -133,13 +136,13 @@ body {
 /*//////////////////////////////////////////////////////////////////////*/
 
 .panel {
-  position: fixed;
-  right: 0; top: 0; bottom: 0;
+  position: absolute;
+  right: 0; bottom: 0;
   width: 160px; padding: 8px;
   z-index: 1; display: flex;
   flex-direction: column;
   align-items: flex-start;
-  justify-content: flex-end;
+  background: #000000;
 }
 
 .controls {
@@ -174,3 +177,4 @@ body {
   image-rendering: pixelated;
   pointer-events: none;
 }
+

@@ -2,7 +2,14 @@ import {settext} from "./font.js";
 
 const ROWH = 28;
 const NUMW = 64, COLGAP = 24;
-const CHAPTERS = [1, 2, 3, 4, 5];
+const CHAPTERS = [
+  {id: 1, dir: "ch1", icon: "ch1"},
+  {id: 2, dir: "ch2", icon: "ch2"},
+  {id: 3, dir: "ch3", icon: "ch3"},
+  {id: 4, dir: "ch4", icon: "ch4"},
+  {id: 5, dir: "ch5", icon: "ch5"},
+  {id: "more", dir: "more", icon: "more"},
+];
 const MINPITCH = 0.2, MAXPITCH = 3;
 const CLICKSLOP = 4;
 const NOTCH = 100, ROWSPERNOTCH = 1;
@@ -21,7 +28,7 @@ audio.preload = "none";
 if ("preservesPitch" in audio) audio.preservesPitch = false;
 
 let tracks = [], view = [], chapter = CHAPTERS[0];
-let current = 0, loaded = -1;
+let current = 0, loaded = "";
 let auto = 0, pitch = 1;
 let raf = 0, drag = null, dragmoved = false, seeking = false, wheelacc = 0;
 let colw = 0, percol = 1;
@@ -51,12 +58,15 @@ const CONTROLS = [
   {label: () => "Pitch=" + (+pitch.toFixed(1)), act: () => setpitch(1)},
 ];
 
+const srcof = t => "assets/audio/" + chapter.dir + "/" + encodeURIComponent(t.f);
+
 function play() {
   const t = view[current];
   if (!t) return;
-  if (loaded !== t.n) {
-    audio.src = "assets/audio/ch" + t.ch + "/" + encodeURIComponent(t.f);
-    loaded = t.n;
+  const src = srcof(t);
+  if (loaded !== src) {
+    audio.src = src;
+    loaded = src;
   }
   else {
     try {audio.currentTime = 0} catch {}
@@ -68,7 +78,7 @@ function play() {
 
 function toggleplay() {
   if (!audio.paused) {audio.pause(); return}
-  if (loaded === view[current]?.n && audio.currentTime > 0 && !audio.ended) {audio.play().catch(() => {}); return}
+  if (view[current] && loaded === srcof(view[current]) && audio.currentTime > 0 && !audio.ended) {audio.play().catch(() => {}); return}
   play();
 }
 
@@ -116,13 +126,13 @@ function revealcurrent() {
 /*//////////////////////////////////////////////////////////////////////*/
 
 function buildtabs() {
-  for (const ch of CHAPTERS) {
+  for (const c of CHAPTERS) {
     const tab = document.createElement("div");
     tab.className = "tab";
     const icon = document.createElement("img");
-    icon.src = "assets/images/chapters/ch" + ch + ".png";
+    icon.src = "assets/images/chapters/" + c.icon + ".png";
     tab.appendChild(icon);
-    tab.onclick = () => setchapter(ch);
+    tab.onclick = () => setchapter(c);
     tabsbox.appendChild(tab);
     tabs.push(tab);
   }
@@ -172,15 +182,16 @@ function layout() {
   placeheart();
 }
 
-function setchapter(ch) {
-  chapter = ch;
-  view = tracks.filter(t => t.ch === ch);
-  tabs.forEach((tab, i) => tab.classList.toggle("on", CHAPTERS[i] === ch));
+function setchapter(c) {
+  chapter = c;
+  view = tracks.filter(t => t.ch === c.id);
+  tabs.forEach((tab, i) => tab.classList.toggle("on", CHAPTERS[i] === c));
   buildlist();
   layout();
   scrollto(0);
-  const i = view.findIndex(t => t.n === loaded);
+  const i = view.findIndex(t => loaded === srcof(t));
   select(i < 0 ? 0 : i);
+  revealcurrent();
 }
 
 function buildpanel() {
@@ -287,9 +298,9 @@ function wire() {
   audio.addEventListener("ended", () => {
     if (!auto) {refreshpanel(); return}
     if (current < last()) {select(current + 1); revealcurrent(); play(); return}
-    const nextch = CHAPTERS[CHAPTERS.indexOf(chapter) + 1];
-    if (nextch === undefined) {refreshpanel(); return}
-    setchapter(nextch);
+    const next = CHAPTERS[CHAPTERS.indexOf(chapter) + 1];
+    if (!next) {refreshpanel(); return}
+    setchapter(next);
     play();
   });
 }
