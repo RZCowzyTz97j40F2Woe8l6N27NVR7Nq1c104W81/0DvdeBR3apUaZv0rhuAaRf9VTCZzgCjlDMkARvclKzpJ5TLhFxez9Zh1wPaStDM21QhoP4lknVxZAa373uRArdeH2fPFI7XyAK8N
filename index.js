@@ -8,6 +8,8 @@ const CHAPTERS = [
   {id: 3, dir: "ch3", icon: "ch3"},
   {id: 4, dir: "ch4", icon: "ch4"},
   {id: 5, dir: "ch5", icon: "ch5"},
+  {id: "guitar", dir: "guitar", icon: "guitar"},
+  {id: "piano", dir: "piano", icon: "piano"},
   {id: "more", dir: "more", icon: "more"},
 ];
 const MINPITCH = 0.2, MAXPITCH = 3;
@@ -29,7 +31,7 @@ if ("preservesPitch" in audio) audio.preservesPitch = false;
 
 let tracks = [], view = [], chapter = CHAPTERS[0];
 let current = 0, loaded = "";
-let auto = 0, pitch = 1;
+let auto = 0, pitch = 1, tempo = 1;
 let raf = 0, drag = null, dragmoved = false, seeking = false, wheelacc = 0;
 let colw = 0, percol = 1;
 
@@ -56,6 +58,9 @@ const CONTROLS = [
   {label: () => "Pitch -", act: () => setpitch(pitch - 0.1)},
   {label: () => "Pitch +", act: () => setpitch(pitch + 0.1)},
   {label: () => "Pitch=" + (+pitch.toFixed(1)), act: () => setpitch(1)},
+  {label: () => "Tempo -", act: () => settempo(tempo - 0.1)},
+  {label: () => "Tempo +", act: () => settempo(tempo + 0.1)},
+  {label: () => "Tempo=" + (+tempo.toFixed(1)), act: () => settempo(1)},
 ];
 
 const srcof = t => "assets/audio/" + chapter.dir + "/" + encodeURIComponent(t.f);
@@ -71,7 +76,7 @@ function play() {
   else {
     try {audio.currentTime = 0} catch {}
   }
-  audio.playbackRate = pitch;
+  applyrate();
   audio.play().catch(() => {});
   refreshpanel();
 }
@@ -89,9 +94,20 @@ function stop() {
   drawseek();
 }
 
+function applyrate() {
+  if ("preservesPitch" in audio) audio.preservesPitch = pitch === 1;
+  audio.playbackRate = pitch * tempo;
+}
+
 function setpitch(p) {
   pitch = clamp(Math.round(p * 10) / 10, MINPITCH, MAXPITCH);
-  audio.playbackRate = pitch;
+  applyrate();
+  refreshpanel();
+}
+
+function settempo(t) {
+  tempo = clamp(Math.round(t * 10) / 10, MINPITCH, MAXPITCH);
+  applyrate();
   refreshpanel();
 }
 
