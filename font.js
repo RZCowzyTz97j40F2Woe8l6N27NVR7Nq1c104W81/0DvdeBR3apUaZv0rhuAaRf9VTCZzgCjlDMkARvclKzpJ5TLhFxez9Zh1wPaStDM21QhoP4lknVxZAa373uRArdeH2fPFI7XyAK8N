@@ -1,5 +1,4 @@
 import {fonts} from "./assets/fonts/fonts.js";
-
 const DEFAULT = "fnt_main";
 const styledfonts = new Set();
 
