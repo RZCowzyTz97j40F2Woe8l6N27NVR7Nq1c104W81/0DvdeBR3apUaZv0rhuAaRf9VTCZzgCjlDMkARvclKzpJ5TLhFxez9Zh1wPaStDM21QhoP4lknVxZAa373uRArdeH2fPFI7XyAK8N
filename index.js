@@ -24,6 +24,10 @@ const controls = document.querySelector(".controls");
 const seek = document.querySelector(".seek");
 const seekfill = document.querySelector(".seekfill");
 const timetext = document.querySelector(".time");
+const compactname = document.querySelector(".compactname");
+const compactseek = document.querySelector(".compactseek");
+const compactseekfill = document.querySelector(".compactseekfill");
+const compactstats = document.querySelector(".compactstats");
 
 const audio = new Audio();
 audio.preload = "none";
@@ -122,6 +126,7 @@ function select(i) {
   current = next;
   rows[current].classList.add("on");
   placeheart();
+  updatecompact();
 }
 
 function pick(i) {
@@ -222,12 +227,21 @@ function buildpanel() {
 
 function refreshpanel() {
   CONTROLS.forEach((c, i) => settext(plines[i], c.label(), "fnt_main"));
+  updatecompact();
+}
+
+function updatecompact() {
+  const t = view[current];
+  settext(compactname, t ? t.t : "", "fnt_mainbig");
+  settext(compactstats, "Pitch=" + (+pitch.toFixed(1)) + "  Tempo=" + (+tempo.toFixed(1)), "fnt_small");
 }
 
 function drawseek() {
   const dur = audio.duration || 0;
   const cur = audio.currentTime || 0;
-  seekfill.style.width = (dur ? (cur / dur) * 100 : 0) + "%";
+  const pct = (dur ? (cur / dur) * 100 : 0) + "%";
+  seekfill.style.width = pct;
+  compactseekfill.style.width = pct;
   settext(timetext, fmt(cur) + " / " + fmt(dur), "fnt_small");
 }
 
@@ -238,9 +252,9 @@ function tick() {
 
 /*//////////////////////////////////////////////////////////////////////*/
 
-function seekto(e) {
+function seekto(e, bar) {
   if (!audio.duration) return;
-  const r = seek.getBoundingClientRect();
+  const r = bar.getBoundingClientRect();
   audio.currentTime = clamp((e.clientX - r.left) / r.width, 0, 1) * audio.duration;
 }
 
@@ -294,18 +308,27 @@ function wire() {
     if (row) pick(+row.dataset.i);
   });
 
+  let seekbar = null;
   const endseek = e => {
     seeking = false;
-    if (seek.hasPointerCapture(e.pointerId)) seek.releasePointerCapture(e.pointerId);
+    if (seekbar?.hasPointerCapture(e.pointerId)) seekbar.releasePointerCapture(e.pointerId);
+    seekbar = null;
   };
-  seek.addEventListener("pointerdown", e => {
+  const startseek = bar => e => {
     seeking = true;
-    try {seek.setPointerCapture(e.pointerId)} catch {}
-    seekto(e);
-  });
-  seek.addEventListener("pointermove", e => {if (seeking) seekto(e)});
+    seekbar = bar;
+    try {bar.setPointerCapture(e.pointerId)} catch {}
+    seekto(e, bar);
+  };
+  seek.addEventListener("pointerdown", startseek(seek));
+  seek.addEventListener("pointermove", e => {if (seeking && seekbar === seek) seekto(e, seek)});
   seek.addEventListener("pointerup", endseek);
   seek.addEventListener("pointercancel", endseek);
+
+  compactseek.addEventListener("pointerdown", startseek(compactseek));
+  compactseek.addEventListener("pointermove", e => {if (seeking && seekbar === compactseek) seekto(e, compactseek)});
+  compactseek.addEventListener("pointerup", endseek);
+  compactseek.addEventListener("pointercancel", endseek);
 
   audio.addEventListener("play", () => {refreshpanel(); if (!raf) raf = requestAnimationFrame(tick)});
   audio.addEventListener("pause", () => {refreshpanel(); drawseek()});
