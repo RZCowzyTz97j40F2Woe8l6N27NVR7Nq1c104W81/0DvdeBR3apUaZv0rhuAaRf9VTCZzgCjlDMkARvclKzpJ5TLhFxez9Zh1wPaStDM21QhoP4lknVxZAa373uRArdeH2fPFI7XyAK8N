@@ -2,6 +2,7 @@ import {settext} from "./font.js";
 
 const ROWH = 28;
 const NUMW = 64, COLGAP = 24;
+
 const CHAPTERS = [
   {id: 1, dir: "ch1", icon: "ch1"},
   {id: 2, dir: "ch2", icon: "ch2"},
@@ -12,9 +13,12 @@ const CHAPTERS = [
   {id: "piano", dir: "piano", icon: "piano"},
   {id: "more", dir: "more", icon: "more"},
 ];
+
 const MINPITCH = 0.2, MAXPITCH = 3;
 const CLICKSLOP = 4;
 const NOTCH = 100, ROWSPERNOTCH = 1;
+
+/*//////////////////////////////////////////////////////////////////////*/
 
 const tabsbox = document.querySelector(".tabs");
 const list = document.querySelector(".list");
